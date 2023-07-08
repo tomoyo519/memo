@@ -50,26 +50,34 @@
         margin: auto;
       }
 
- 
-
-      #post-box {
+      .form-post {
         width: 500px;
-        margin: 20px auto;
-        padding: 50px;
-        border: black solid;
-        border-radius: 5px;
+      }
+
+      #card-list {
+        width:900px;
+      }
+      .card{
+        width:290px;
+        margin:5px;
+      }
+
+      .form-control {
+        width: 450px;
       }
     </style>
     <script>
       $(document).ready(function () {
-      showArticles();
+      showMemos();
       });
 
 
-      function postArticle() {
+      function postMemo() {
+        
         let memoTitle = $("#input-title").val();
         let memoCtx = $("#input-text").val();
-        let id = Math.floor(Math.random() * 100)
+    
+        let id = Math.floor(Math.random() * 99999)
         $.ajax({
           type: "POST",
           url: "/memo",
@@ -77,8 +85,10 @@
           success: function (response) {
             // 성공하면
             if (response["result"] == "success") {
-              alert("성공!");
-              showArticles();
+              alert("저장 완료!");
+              $("#input-title").val('');
+              $("#input-text").val('');
+              showMemos();
             } else {
               alert("실패!");
             }
@@ -86,58 +96,70 @@
         });
       }
 
-      function showArticles() {
-        $("#cards-list").html("");
+      function showMemos() {
+        $("#card-list").html("");
         $.ajax({
           type: "GET",
           url: "/memo",
           data: {},
           success: function (response) {
-            let articles = response["memos"];
-            console.log('memos:', articles)
-            for (let i = 0; i < articles.length; i++) {
+            let memos = response["memos"];
+
+            for (let i = 0; i < memos.length; i++) {
               makeCard(
-                articles[i]["title"],
-                articles[i]["ctx"],
-                articles[i]["id"]
+                 memos[i]["id"],
+                memos[i]["title"],
+                memos[i]["ctx"]
               );
             }
           },
         });
       }
 
-      function makeCard(title, desc, id) {
-        let tem_HTML = `<div class="card" id="${id}"">
+      function makeCard(id, title, desc) {
+        let tem_HTML = `<div class="card" id="${id}">
          <div class="card-body">
             <a href="#" class="card-title">${title}</a>
             <p class="card-text">
               ${desc}
             </p>
-            <button type="button" class="btn btn-info" onclick="editMode(${id},${title}, ${desc})">수정</button>
+            <button type="button" class="btn btn-info" onclick="editMode(${id})">수정</button>
             <button type="button" class="btn btn-danger" onclick="deleteMode(${id})">삭제</button>
         </div>
         `;
-        $("#cards-list").append(tem_HTML);
+        $("#card-list").append(tem_HTML);
       }
 
-      function editMode(id, title, desc){
-        console.log('실행?', id)
+      function editMode(id){
+         $('#'+id).children('div').hide();
+         $.ajax({
+          type: "POST",
+          url: "/findmemo",
+          data: { id_give: id },
+          success: function (response) {
+            if (response["result"] == "success") {
+              let memo = response["memo"]
 
-        $('#'+id).children('div').hide();
 
-         let tem_HTML = `
-         <div class="card-body">
-             <div class="form-group">
-            <label for="post-url"></label>
-            <input id="input-title${id}" class="form-control" placeholder="수정할 제목을 입력하세요" value="${title}" />
-          </div>
-            <div class="form-group">
-            <label for="post-url"></label>
-            <input id="input-text${id}" class="form-control" placeholder="수정할 내용을 입력하세요" value=${desc} />
-          </div>
-            <button type="button" class="btn btn-info" onclick="saveMode(${id})">저장</button>
-        `;
-        $("#"+id).append(tem_HTML);
+              let tem_HTML = `
+              <div class="card-body flex-fill">
+                  <div class="form-group">
+                  <label for="post-url"></label>
+                  <input id="input-title${id}" class="mod-title" placeholder="수정할 제목을 입력하세요" value="${memo.title}" />
+                </div>
+                  <div class="form-group">
+                  <label for="post-url"></label>
+                  <input id="input-text${id}" class="mod-text" placeholder="수정할 내용을 입력하세요" value="${memo.ctx}"" />
+                </div>
+                  <button type="button" class="btn btn-info" onclick="saveMode(${id})">저장</button>
+              `;
+              $("#"+id).append(tem_HTML);
+
+            } else {
+              alert("실패!");
+            }
+          },
+        });
       }
 
       function deleteMode(id){
@@ -146,10 +168,9 @@
           url: "/deletememo",
           data: { id_give: id },
           success: function (response) {
-            // 성공하면
             if (response["result"] == "success") {
-              alert("성공!");
-              showArticles();
+              alert("삭제 완료!");
+              showMemos();
             } else {
               alert("실패!");
             }
@@ -165,10 +186,9 @@
           url: "/editmemo",
           data: { title_give: memoTitle, ctx_give: memoCtx, id_give: id },
           success: function (response) {
-            // 성공하면
             if (response["result"] == "success") {
-              alert("성공!");
-              showArticles();
+              alert("수정 완료!");
+              showMemos();
             } else {
               alert("실패!");
             }
@@ -181,10 +201,11 @@
   <body>
     <div class="wrap">
       <div class="jumbotron">
-        <h1 class="display-4">나홀로 메모장</h1>
-        <div>ver2.0</div>
+        <div class="d-flex">
+        <h1 class="display-4 font-weight-bolder">나홀로 메모장</h1>
+        <h1>  <span class="badge badge-secondary ml-3">ver2.0</span></h1>
         
-     
+        </div>
        
      
 
@@ -203,17 +224,19 @@
             ></textarea>
           </div>
          <button
-            onclick="postArticle()"
+            onclick="postMemo()"
             id="btn-post-box"
             type="submit"
-            class="btn btn-primary"
+            class="btn btn-primary mt-3"
           >
           저장하기
           </button>
         </div>
+        
       </div>
-      <div id="cards-list" >
-       <div class="card">
+      <div class="container">
+      <div id="card-list" class="row" >
+       <div class="card ">
          <div class="card-body">
             <a href="#" class="card-title">제목</a>
             <p class="card-text">
@@ -224,9 +247,8 @@
         </div>
       </div>
       </div>
+    </div>
  </div>
-
-      
     </div>
   </body>
 </html>

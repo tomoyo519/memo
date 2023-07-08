@@ -5,7 +5,7 @@ app = Flask(__name__)
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-client = MongoClient('localhost', 27017)
+client = MongoClient('mongodb://test:test@localhost', 27017)
 db = client.dbsparta
 from bson.json_util import dumps
 
@@ -16,16 +16,10 @@ def home():
 @app.route('/memo', methods=['GET'])
 def listing():
     memoList = list(db.memos.find({}, {'_id':False}))
-
-    # for i in memoList:
-    #     i['_id'] = str(i['_id'])
-
-       
     return jsonify({'result':"success", 'msg':'GET 연결 되었습니다.', 'memos':memoList})
 
 @app.route('/memo', methods=['POST'])
 def post_articles():
-    # port url ?? url_give
     url_receive = request.form['title_give']
     comment_receive = request.form['ctx_give']
     id_receive = request.form['id_give']
@@ -57,6 +51,15 @@ def delete_memo():
     objMemo = db.memos.delete_one({'id':id_receive})
    
     return jsonify({'result':'success', 'msg':" 삭제 되었습니다."})
+    
+    
+@app.route('/findmemo', methods=['POST'])
+def find_memo():
+    id_receive = request.form['id_give']
+    
+    oneMemo = db.memos.find_one({'id':id_receive}, {'_id':False})
+   
+    return jsonify({'result':'success', 'memo':oneMemo})
     
     
 

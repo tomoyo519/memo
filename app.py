@@ -4,10 +4,10 @@ app = Flask(__name__)
 
 import requests
 from bs4 import BeautifulSoup
-
 from pymongo import MongoClient
 client = MongoClient('localhost', 27017)
-db  = client.dbjungle
+db = client.dbsparta
+from bson.json_util import dumps
 
 @app.route('/')
 def home():
@@ -15,34 +15,50 @@ def home():
 
 @app.route('/memo', methods=['GET'])
 def listing():
-    movieList = list(db.movies.find({}, {'_id':0}))
+    memoList = list(db.memos.find({}, {'_id':False}))
 
-    return jsonify({'result':"success", 'msg':'GET 연결 되었습니다.', 'articles': movieList})
+    # for i in memoList:
+    #     i['_id'] = str(i['_id'])
+
+       
+    return jsonify({'result':"success", 'msg':'GET 연결 되었습니다.', 'memos':memoList})
 
 @app.route('/memo', methods=['POST'])
 def post_articles():
     # port url ?? url_give
-    url_receive = request.form['url_give']
-    comment_receive = request.form['comment_give']
-    headers={
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36'}
-    data = requests.get(url_receive, headers=headers)
-    soup = BeautifulSoup(data.text, 'html.parser')
+    url_receive = request.form['title_give']
+    comment_receive = request.form['ctx_give']
+    id_receive = request.form['id_give']
     
-    og_image = soup.select_one('meta[property="og:image"]')
-    og_title = soup.select_one('meta[property="og:title"]')
-    og_description = soup.select_one('meta[property="og:description"]')
+    memo = {'title' : url_receive, 'ctx': comment_receive, 'id':id_receive}
     
-    url_title = og_title['content']
-    url_description = og_title['content']
-    url_image = og_image['content']
-    
-    article = {'url' : url_receive, 'title': url_title, 'desc': url_description, 'image': url_image, 'comment': comment_receive}
-    
-    db.movies.insert_one(article)
+    db.memos.insert_one(memo)
    
     return jsonify({'result':'success', 'msg':"POST 연결 되었습니다."})
     
+
+
+@app.route('/editmemo', methods=['POST'])
+def edit_memo():
+    url_receive = request.form['title_give']
+    comment_receive = request.form['ctx_give']
+    id_receive = request.form['id_give']
     
+    memo = {'title' : url_receive, 'ctx': comment_receive, 'id':id_receive}
+    objMemo = db.memos.update_one({'id':id_receive}, { '$set': {'title':url_receive, 'ctx': comment_receive} })
+   
+    return jsonify({'result':'success', 'msg':" 수정 되었습니다."})
+    
+
+@app.route('/deletememo', methods=['POST'])
+def delete_memo():
+    id_receive = request.form['id_give']
+    
+    objMemo = db.memos.delete_one({'id':id_receive})
+   
+    return jsonify({'result':'success', 'msg':" 삭제 되었습니다."})
+    
+    
+
 if __name__ == '__main__':  
-   app.run('0.0.0.0',port=5002,debug=True)
+   app.run('0.0.0.0',port=5003,debug=True)
